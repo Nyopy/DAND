@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://dimplejs.org/dist/dimple.v2.0.0.min.js"></script>
+    <script src="https://d3js.org/queue.v1.min.js"></script>
+    <script src="https://d3js.org/topojson.v1.min.js"></script>
+    
+    <style>
+      #Average {
+        stroke-width:10px;
+        opacity: 0.5;
+      }
+
+      h2 {
+        text-align: center;
+        font-size: 36px
+      }
+
+      p{
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 24px;
+        max-width: 1200px;  
+        text-align: center
+      }
+
+      .last_div{
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-style: italic;
+        font-size: 20px;
+        text-align:justify;
+        position: fixed;
+        width: 600px;
+        margin-top: 600px 
+      }
+
+      .border {
+        stroke-width: 0.4px;
+        fill: none;
+        stroke: #333;
+      }
+
+      .key path {
+        display: none;
+      }
+
+      .key line {
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+
+    </style>
+
+    <script type="text/javascript">
+
+      function draw(data) {
+
+          //Generating the main title of the visualization
+          d3.select("body")
+            .append("h2")
+            .text("Unemployment Rate in France Regions between 2003 and 2016 with a map focus in 2016 (Source INSEE)")
+
+          //Dividing the page into several divs
+          var main_div=d3.select("body").append("div").attr("class","main_div").style('display', 'flex');
+          var left_div=main_div.append("div").attr("class","left_div");
+          var right_div=main_div.append("div").attr("class","right_div");
+          var last_div=right_div.append("div").attr("class","last_div")
+
+          //setting margin, width & height
+          "use strict";
+          var margin = 60,
+              width = 850  - margin,
+              height = 640 - margin;
+
+          //Generating the linechart
+
+          //Subtitle for the line chart
+          left_div.append("p").attr("class","title_line_graph").text("Unemployment in France Regions between 2003 and 2016");
+          
+          //Creation of the svg element
+          var svg = left_div
+            .append("svg")
+              .attr("width", width + margin)
+              .attr("height", height + margin)
+            .append('g')
+                .attr('class','chart');
+
+          //Dimple chart definition
+          var myChart = new dimple.chart(svg, data);
+          var x = myChart.addTimeAxis("x", "year"); 
+          var y = myChart.addMeasureAxis("y", "Unemployment");
+          y.title="Unemployment rate in %"
+          x.dateParseFormat = "%Y";
+          x.tickFormat = "%Y";
+          x.timeInterval = 1;
+          //We aggregate all data to generate a mean trend line
+          var s = myChart.addSeries("Average", dimple.plot.line);
+          s.aggregate = dimple.aggregateMethod.avg;
+          //Setting the legend with size, font size & dimensions
+          myChart.addLegend(190, 550, 700, 800, "left").fontSize="14px";
+          myChart.setBounds(100, 30, 700, 450)
+
+          //We define that we want a many lines as we have regions in France
+          var mySeries = myChart.addSeries(['Region'],dimple.plot.line)
+          x.fontSize="18px"
+          y.fontSize="18px"
+          myChart.draw();
+
+          //Adapting the size of axis labels
+          svg.select("dimple-axis")
+          .selectAll("text")
+          .style("font-size","15px")
+          
+          // Generating the choropleth chart
+
+          //Function to format numbers ticks
+          formatNumber = d3.format("s");
+
+          //Defining the color brewer used as scaled
+          var color = d3.scale.threshold()
+              .domain([8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5,13])
+              .range(["#313695","#4575b4","#74add1","#abd9e9","#e0f3f8","#ffffbf","#fee090","#fdae61","#f46d43","#d73027","#a50026"]);
+
+          //Mapping the scale domain 8-13 on the pixel range 0-300
+          var x = d3.scale.linear()
+              .domain([8, 13])
+              .range([0, 300]);
+
+          //Creating the axis for the legend, defining the ticks
+          var xAxis = d3.svg.axis()
+              .scale(x)
+              .orient("bottom")
+              .tickSize(13)
+              .tickValues(color.domain())
+              .tickFormat(function(d) { return formatNumber(d); });
+
+          //Defining the projection that will be used for the map
+          var projection = d3.geo.albers()
+              .center([0, 49.5])
+              .rotate([-2.8, 3])
+              .parallels([45, 55])
+              .scale(2500)
+              .translate([width / 2, height / 2]);
+
+          //Defining the path variable (equivalent of the axis for a map)
+          var path = d3.geo.path()
+              .projection(projection);
+
+          //Creating the svg container in which we will put the choropleth
+          right_div.append("p").attr("class","title_map_graph").text("Snapshot of unemployment in France in 2016");
+          var svg = right_div.append("svg")
+              .attr("width", width)
+              .attr("height", height);
+
+          //Legend is in g, with the class key, we translate the legend for it to be on the top right corner
+          var g = svg.append("g")
+              .attr("class", "key")
+              .attr("transform", "translate(" + 430 + "," + 20 + ")");
+
+          //We generate the small rectangles overlaying the legend ticks with the right colors
+          g.selectAll("rect")
+              .data(color.range().map(function(currentColor) {
+                var d = color.invertExtent(currentColor);
+                if (d[0] == null) d[0] = x.domain()[0];
+                if (d[1] == null) d[1] = x.domain()[1];
+                return d;
+              }))
+            .enter().append("rect")
+              .attr("height", 8)
+              .attr("x", function(d) { return x(d[0]); })
+              .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+              .style("fill", function(d) { return color(d[0]); });
+
+          //Caption creation on the legend
+          g.call(xAxis).append("text")
+              .attr("class", "caption")
+              .attr("y", -6)
+              .text("Unemployment Rate");
+
+          //Asynchroneous tasks execution and execution of the ready function which draws the choropleth
+          queue() 
+              .defer(d3.json, "france.json")
+              .defer(d3.csv, "unemployment2016.csv")
+              .await(ready);
+
+          function ready(error, france, population) {
+
+            var regions = svg.selectAll(".departements")
+                 .data(topojson.feature(france, france.objects.FR).features) //Data binding of the JSON file
+              .enter().append("path")
+                .attr("class", "departements")
+                .attr("d", path)
+                .style("fill",function(departement){
+                  var paringData = population.filter(function(population){ return departement.properties.name === population.Region; })[0];
+                  return paringData ? color(paringData.population) : color(0); //All the magic happens here, where we match the unemployment with the regions defined in the JSON
+                });
+
+            svg.append("path")
+                      .datum(topojson.mesh(france, france.objects.FR, function(a, b) { return a.properties.name !== b.properties.name || a === b; })) //We mesh the map to hide the internal arcs of french regions (the regions)
+                .attr("class","border")
+                .attr("d", path);
+           };
+           
+           // Adding a small conclusion of the main take away of the data visualization
+           last_div
+            .append('q')
+            .text('Looking at the global trend, unemployment in France has been constantly raising after 2008 financial crisis in all regions of France. However, some regions are managing better than others. In particular, 4 regions have an unemployment rate far above average including: Hauts de France, Occitanie, Corse and Provence Alpes Cote d\'Azur.');
+        };
+    </script>
+  </head>
+<body>
+  <script type="text/javascript">
+  //Callback function to draw the charts
+  d3.tsv("unemployment.tsv", draw);
+  </script>
+  
+ 
+</body>
+</html>
