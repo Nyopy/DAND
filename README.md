@@ -45,7 +45,7 @@ Due to the feedback number 2 (are situation similar between close regions), I de
 
 I placed the two graphs close to each other with a description of what is the main takeaway of the visualization. 
 
-## Feedback#
+## Feedback
 ### Feedback 1 : Dominique
 
 - **What do you notice in the visualization?**
