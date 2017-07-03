@@ -41,7 +41,7 @@ After taking into account the various feedback I received, I produced this new v
 
 Due to the feedback number 2 (are situation similar between close regions), I decided to add a choropleth in order to show the regional distribution of unployment in 2016 (last data point). This is to underline that extreme north and south regions seems to have more difficulties than center of France. I decided to use a diverging color scale to emphasize positive and negative variations around the central values.
 
-![final index html](Image3.png "Third HTML version")
+![final index html](image3.png "Third HTML version")
 
 I placed the two graphs close to each other with a description of what is the main takeaway of the visualization. 
 
